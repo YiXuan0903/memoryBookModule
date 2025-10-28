@@ -4,13 +4,19 @@
 
 @php
     $memoryData = App\Http\Controllers\MemoryController::getMemoryDataForMainDashboard();
+    extract($memoryData);
 @endphp
 
 <div class="container-fluid">
     <div class="row mb-4">
-        <div class="col">
-            <h1 class="mb-0">📊 Main Dashboard</h1>
-            <p class="text-muted">Welcome back, {{ Auth::user()->name }}! Here's your overview.</p>
+        <div class="col  d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="mb-0">📊 Main Dashboard</h1>
+                <p class="text-muted">Welcome back, {{ Auth::user()->name }}! Here's your overview.</p>
+            </div>
+            <a href="{{ url('/memories') }}" class="btn btn-primary">
+                <i class="bi bi-arrow-right-circle me-2"></i>Go to Memory Module
+            </a>
         </div>
     </div>
 
@@ -28,103 +34,283 @@
                 </div>
             </div>
         </div>
-
-    @if(isset($memoryStats))
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">📖 Memory Module Overview</h5>
-                    <a href="{{ url('/memories') }}" class="btn btn-primary">
-                        <i class="bi bi-arrow-right-circle me-2"></i>Go to Memory Module
-                    </a>
-                </div>
+        
+        @if(isset($memoryStats))
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
                 <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-3">
-                            <div class="text-center p-3">
-                                <h3 class="text-primary">{{ $memoryStats['total'] }}</h3>
-                                <p class="mb-0">Total Memories</p>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="text-center p-3">
-                                <h3 class="text-success">{{ $memoryStats['public'] }}</h3>
-                                <p class="mb-0">Public</p>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="text-center p-3">
-                                <h3 class="text-warning">{{ $memoryStats['private'] }}</h3>
-                                <p class="mb-0">Private</p>
-                            </div>
-                        </div>
-                        <div class="col-md-3">
-                            <div class="text-center p-3">
-                                <h3 class="text-info">{{ $memoryStats['topMood'] ?? 'N/A' }}</h3>
-                                <p class="mb-0">Top Mood</p>
-                            </div>
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-globe fs-1 me-3"></i>
+                        <div>
+                            <h4 class="mb-0">{{ $memoryStats['public'] }}</h4>
+                            <small>Public Memories</small>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="mb-0">😊 Sentiment Analysis</h6>
-                </div>
+        
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
                 <div class="card-body">
-                    @if(isset($sentimentSummary))
-                        <div class="row text-center">
-                            <div class="col-4">
-                                <div class="p-2">
-                                    <h4 class="text-success">{{ $sentimentSummary['positive'] }}</h4>
-                                    <small>Positive</small>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="p-2">
-                                    <h4 class="text-secondary">{{ $sentimentSummary['neutral'] }}</h4>
-                                    <small>Neutral</small>
-                                </div>
-                            </div>
-                            <div class="col-4">
-                                <div class="p-2">
-                                    <h4 class="text-danger">{{ $sentimentSummary['negative'] }}</h4>
-                                    <small>Negative</small>
-                                </div>
-                            </div>
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-lock fs-1 me-3"></i>
+                        <div>
+                            <h4 class="mb-0">{{ $memoryStats['private'] }}</h4>
+                            <small>Private Memories</small>
                         </div>
-                    @endif
+                    </div>
                 </div>
             </div>
         </div>
         
-        <div class="col-md-6">
-            <div class="card">
-                <div class="card-header">
-                    <h6 class="mb-0">🎭 Mood Distribution</h6>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <i class="bi bi-emoji-smile fs-1 me-3"></i>
+                        <div>
+                            <h4 class="mb-0">{{ $memoryStats['topMood'] ?? 'N/A' }}</h4>
+                            <small>Top Mood</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+    </div>
+
+    @if(isset($sentimentSummary) && isset($moodSummary))
+    <div class="row mb-4">
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">😊 Sentiment Analysis</h5>
                 </div>
                 <div class="card-body">
-                    @if(isset($moodSummary))
-                        <div class="row">
-                            @foreach($moodSummary as $mood => $count)
-                                <div class="col-6 mb-2">
-                                    <div class="d-flex justify-content-between">
-                                        <span class="text-capitalize">{{ $mood }}</span>
-                                        <span class="badge bg-secondary">{{ $count }}</span>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
+                    <canvas id="sentimentChart" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">🎭 Mood Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="moodChart" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mb-4">
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">🔒 Privacy Distribution</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="privacyChart" style="max-height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-light">
+                    <h5 class="mb-0">📈 Memory Overview</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="overviewChart" style="max-height: 300px;"></canvas>
                 </div>
             </div>
         </div>
     </div>
     @endif
+</div>
+
+@if(isset($sentimentSummary) && isset($moodSummary))
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Sentiment Pie Chart
+    const sentimentCtx = document.getElementById('sentimentChart');
+    if (sentimentCtx) {
+        new Chart(sentimentCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Positive', 'Neutral', 'Negative'],
+                datasets: [{
+                    data: [
+                        {{ $sentimentSummary['positive'] }},
+                        {{ $sentimentSummary['neutral'] }},
+                        {{ $sentimentSummary['negative'] }}
+                    ],
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.8)',
+                        'rgba(108, 117, 125, 0.8)',
+                        'rgba(220, 53, 69, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(108, 117, 125, 1)',
+                        'rgba(220, 53, 69, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    title: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+
+    const moodCtx = document.getElementById('moodChart');
+    if (moodCtx) {
+        new Chart(moodCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Happy', 'Sad', 'Angry', 'Excited', 'Calm', 'Tired'],
+                datasets: [{
+                    label: 'Number of Memories',
+                    data: [
+                        {{ $moodSummary['happy'] ?? 0 }},
+                        {{ $moodSummary['sad'] ?? 0 }},
+                        {{ $moodSummary['angry'] ?? 0 }},
+                        {{ $moodSummary['excited'] ?? 0 }},
+                        {{ $moodSummary['calm'] ?? 0 }},
+                        {{ $moodSummary['tired'] ?? 0 }}
+                    ],
+                    backgroundColor: [
+                        'rgba(255, 193, 7, 0.8)',
+                        'rgba(0, 123, 255, 0.8)',
+                        'rgba(220, 53, 69, 0.8)',
+                        'rgba(255, 99, 132, 0.8)',
+                        'rgba(75, 192, 192, 0.8)',
+                        'rgba(153, 102, 255, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(255, 193, 7, 1)',
+                        'rgba(0, 123, 255, 1)',
+                        'rgba(220, 53, 69, 1)',
+                        'rgba(255, 99, 132, 1)',
+                        'rgba(75, 192, 192, 1)',
+                        'rgba(153, 102, 255, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+
+    const privacyCtx = document.getElementById('privacyChart');
+    if (privacyCtx) {
+        new Chart(privacyCtx, {
+            type: 'pie',
+            data: {
+                labels: ['Public', 'Private'],
+                datasets: [{
+                    data: [
+                        {{ $memoryStats['public'] ?? 0 }},
+                        {{ $memoryStats['private'] ?? 0 }}
+                    ],
+                    backgroundColor: [
+                        'rgba(40, 167, 69, 0.8)',
+                        'rgba(255, 193, 7, 0.8)'
+                    ],
+                    borderColor: [
+                        'rgba(40, 167, 69, 1)',
+                        'rgba(255, 193, 7, 1)'
+                    ],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            }
+        });
+    }
+
+    const overviewCtx = document.getElementById('overviewChart');
+    if (overviewCtx) {
+        new Chart(overviewCtx, {
+            type: 'radar',
+            data: {
+                labels: ['Happy', 'Sad', 'Angry', 'Excited', 'Calm', 'Tired'],
+                datasets: [{
+                    label: 'Mood Distribution',
+                    data: [
+                        {{ $moodSummary['happy'] ?? 0 }},
+                        {{ $moodSummary['sad'] ?? 0 }},
+                        {{ $moodSummary['angry'] ?? 0 }},
+                        {{ $moodSummary['excited'] ?? 0 }},
+                        {{ $moodSummary['calm'] ?? 0 }},
+                        {{ $moodSummary['tired'] ?? 0 }}
+                    ],
+                    backgroundColor: 'rgba(13, 110, 253, 0.2)',
+                    borderColor: 'rgba(13, 110, 253, 1)',
+                    borderWidth: 2,
+                    pointBackgroundColor: 'rgba(13, 110, 253, 1)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgba(13, 110, 253, 1)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+@endif
+
 @endsection

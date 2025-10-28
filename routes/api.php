@@ -19,10 +19,19 @@ Route::middleware('web')->group(function () {
         // Memory operations for web frontend
         Route::post('/memories', [MemoryApiController::class, 'store']);
         Route::get('/memories', [MemoryApiController::class, 'index']);
+        
+        // ===== MOVED HERE: Friends Management for Web (Session Auth) =====
+        Route::get('/friends', [MemoryController::class, 'apiFriends']);
+        Route::post('/friends', [MemoryController::class, 'apiAddFriend']);
+        Route::patch('/friends/{id}/category', [MemoryController::class, 'apiChangeCategory']);
+        Route::delete('/friends/{id}', [MemoryController::class, 'apiDeleteFriend']);
+        
+        // Share Memory (Web)
+        Route::post('/memories/{id}/share', [MemoryController::class, 'apiShare']);
     });
 });
 
-// 🔒 Protected routes (Token only: Sanctum)
+// 🔒 Protected routes (Token only: Sanctum) - For Mobile/External APIs
 Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::get('/me', [AuthApiController::class, 'me']);
@@ -43,11 +52,14 @@ Route::middleware('auth:sanctum')->group(function () {
         ]);
     });
 
-    // Share Memory
-    Route::post('/memories/{id}/share', [MemoryController::class, 'apiShare']);
-
-    // Friends Management
-    Route::get('/friends', [MemoryController::class, 'apiFriends']);
-    Route::post('/friends', [MemoryController::class, 'apiAddFriend']);
-    Route::delete('/friends/{id}', [MemoryController::class, 'apiDeleteFriend']);
+    // Friends Management (Token Auth - for mobile apps)
+    Route::prefix('v2')->group(function() {
+        Route::get('/friends', [MemoryController::class, 'apiFriends']);
+        Route::post('/friends', [MemoryController::class, 'apiAddFriend']);
+        Route::patch('/friends/{id}/category', [MemoryController::class, 'apiChangeCategory']);
+        Route::delete('/friends/{id}', [MemoryController::class, 'apiDeleteFriend']);
+        
+        // Share Memory (Token Auth)
+        Route::post('/memories/{id}/share', [MemoryController::class, 'apiShare']);
+    });
 });

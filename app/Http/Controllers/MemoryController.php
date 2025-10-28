@@ -725,6 +725,78 @@ class MemoryController extends Controller
         }
     }
 
+    public function apiChangeCategory(Request $request, $id)
+{
+    try {
+        // Validate the request
+        $request->validate([
+            'category' => 'required|string|in:Family,Classmate,Colleague,Other'
+        ]);
+
+        // Get authenticated user
+        $user = auth()->user();
+        
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'User not authenticated.'
+            ], 401);
+        }
+
+        // Find the friend relationship
+        $friend = Friend::where('user_id', $user->id)
+                       ->where('id', $id)
+                       ->firstOrFail();
+        
+        if (!$friend) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Friend not found.'
+            ], 404);
+        }
+
+        $newCategory=$request->input('category');
+        $friend->category = $newCategory;
+        $friend->save();
+        
+        // Log the change
+        Log::info('Friend category updated', [
+            'friend_id' => $friend->id,
+            'new_category' => $newCategory,
+            'user_id' => $user->id
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Category updated successfully.',
+            'new_category' => $friend->category,
+            'friend' => [
+                'id' => $friend->id,
+                'category' => $friend->category
+            ]
+        ]);
+        
+    } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Invalid category value.',
+            'errors' => $e->errors()
+        ], 422);
+        
+    } catch (\Exception $e) {
+        Log::error('API change category error', [
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
+            'friend_id' => $id,
+        ]);
+        
+        return response()->json([
+            'success' => false,
+            'message' => 'Failed to update category: ' . $e->getMessage()
+        ], 500);
+    }
+}
+
     private function sharedWithMe()
     {
         Log::info('SharedWithMe method called');

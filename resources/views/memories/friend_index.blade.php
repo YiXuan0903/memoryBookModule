@@ -48,7 +48,15 @@
             <tr id="friendRow-{{ $friend->id }}">
               <td>{{ optional($friend->friendUser)->name ?? 'Unknown' }}</td>
               <td>{{ optional($friend->friendUser)->email ?? '-' }}</td>
-              <td>{{ $friend->category ?? '-' }}</td>
+              <td>
+                <select class="form-select category-select" data-id="{{ $friend->id }}">
+                    <option value="" disabled {{ !$friend->category ? 'selected' : '' }}>Select category</option>
+                    <option value="Family" {{ $friend->category == 'Family' ? 'selected' : '' }}>Family</option>
+                    <option value="Classmate" {{ $friend->category == 'Classmate' ? 'selected' : '' }}>Classmate</option>
+                    <option value="Colleague" {{ $friend->category == 'Colleague' ? 'selected' : '' }}>Colleague</option>
+                    <option value="Other" {{ $friend->category == 'Other' ? 'selected' : '' }}>Other</option>
+                </select>
+              </td>
               <td>
                 @php $sharedMemories = $friend->sharedMemories ?? collect(); @endphp
                 @if($sharedMemories->isEmpty())
@@ -131,6 +139,7 @@ document.addEventListener("DOMContentLoaded", function(){
     
     console.log('Friend index page loaded, setting up AJAX for API');
 
+    // Handle "Other" category input visibility
     const categorySelect = document.getElementById('categorySelect');
     const categoryOther = document.getElementById('categoryOther');
     if(categorySelect) {
@@ -143,6 +152,83 @@ document.addEventListener("DOMContentLoaded", function(){
         });
     }
 
+    // ====== CATEGORY CHANGE HANDLER FOR EXISTING FRIENDS ======
+    function setupCategoryChangeHandlers() {
+        const categorySelects = document.querySelectorAll('.category-select');
+        
+        categorySelects.forEach(select => {
+            // Remove any existing listeners to avoid duplicates
+            select.removeEventListener('change', handleCategoryChange);
+            // Add the listener
+            select.addEventListener('change', handleCategoryChange);
+        });
+    }
+
+    function handleCategoryChange(event) {
+        const select = event.target;
+        const friendId = select.getAttribute('data-id');
+        const newCategory = select.value;
+        
+        console.log('Changing category:', { friendId, newCategory });
+        
+        let csrfToken = '';
+        const metaToken = document.querySelector('meta[name="csrf-token"]');
+        if (metaToken) {
+            csrfToken = metaToken.getAttribute('content');
+        }
+        
+        fetch(`/api/friends/${friendId}/category`, {
+            method: 'PATCH',
+            headers: { 
+                "X-CSRF-TOKEN": csrfToken,
+                "X-Requested-With": "XMLHttpRequest",
+                "Accept": "application/json",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                category: newCategory
+            }),
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if(data.success){
+                const successAlert = document.createElement('div');
+                successAlert.className = 'alert alert-success alert-dismissible fade show';
+                successAlert.innerHTML = `
+                    ${data.message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                `;
+                
+                const cardBody = document.querySelector('.card-body');
+                if (cardBody) {
+                    cardBody.insertBefore(successAlert, cardBody.firstChild);
+                    setTimeout(() => {
+                        if (successAlert && successAlert.parentNode) {
+                            successAlert.remove();
+                        }
+                    }, 3000);
+                }
+            }
+        })
+        .catch(err => {
+            console.error('Category update error:', err);
+            alert('Error updating category: ' + err.message);
+            // Revert the select to its previous value if error occurs
+            select.selectedIndex = 0;
+        });
+    }
+
+    // Initialize category change handlers on page load
+    setupCategoryChangeHandlers();
+
+    // ====== ADD FRIEND FORM HANDLER ======
     const addForm = document.getElementById('addFriendForm');
     const alertBox = document.getElementById('addFriendAlert');
 
@@ -181,7 +267,7 @@ document.addEventListener("DOMContentLoaded", function(){
             
             console.log('CSRF Token:', csrfToken);
 
-            fetch("/api/memories", {
+            fetch("/api/friends", {
                 method: "POST",
                 headers: { 
                     "X-CSRF-TOKEN": csrfToken,
@@ -193,7 +279,6 @@ document.addEventListener("DOMContentLoaded", function(){
             })
             .then(response => {
                 console.log('API Response status:', response.status);
-                console.log('API Response headers:', response.headers);
                 
                 if (!response.ok) {
                     if (response.status === 419) {
@@ -229,21 +314,21 @@ document.addEventListener("DOMContentLoaded", function(){
                 console.log('API Success response:', data);
                 
                 if(data.success){
-                    
+                    // Close modal
                     const modal = bootstrap.Modal.getInstance(document.getElementById('addFriendModal'));
                     if (modal) modal.hide();
 
-                    
+                    // Reset form
                     addForm.reset();
                     if(categoryOther) categoryOther.style.display = 'none';
 
-                    
+                    // Remove "No friends" row if exists
                     const noFriendsRow = document.getElementById('noFriendsRow');
                     if(noFriendsRow) {
                         noFriendsRow.remove();
                     }
 
-                    
+                    // Add new row to table
                     const table = document.getElementById('friendsTable').querySelector('tbody');
                     if (table) {
                         const newRow = document.createElement('tr');
@@ -251,7 +336,15 @@ document.addEventListener("DOMContentLoaded", function(){
                         newRow.innerHTML = `
                             <td>${data.friend.name}</td>
                             <td>${data.friend.email}</td>
-                            <td>${data.friend.category}</td>
+                            <td>
+                                <select class="form-select category-select" data-id="${data.friend.id}">
+                                    <option value="" disabled ${!data.friend.category ? 'selected' : ''}>Select category</option>
+                                    <option value="Family" ${data.friend.category == 'Family' ? 'selected' : ''}>Family</option>
+                                    <option value="Classmate" ${data.friend.category == 'Classmate' ? 'selected' : ''}>Classmate</option>
+                                    <option value="Colleague" ${data.friend.category == 'Colleague' ? 'selected' : ''}>Colleague</option>
+                                    <option value="Other" ${data.friend.category == 'Other' ? 'selected' : ''}>Other</option>
+                                </select>
+                            </td>
                             <td><span class="badge bg-secondary">None</span></td>
                             <td>
                                 <button type="button" class="btn btn-sm btn-danger delete-friend-btn" 
@@ -263,8 +356,12 @@ document.addEventListener("DOMContentLoaded", function(){
                             </td>
                         `;
                         table.appendChild(newRow);
+
+                        // IMPORTANT: Setup category change handler for the new row
+                        setupCategoryChangeHandlers();
                     }
 
+                    // Show success message
                     const successAlert = document.createElement('div');
                     successAlert.className = 'alert alert-success alert-dismissible fade show';
                     successAlert.innerHTML = `
@@ -277,7 +374,7 @@ document.addEventListener("DOMContentLoaded", function(){
                         cardBody.insertBefore(successAlert, cardBody.firstChild);
                         
                         setTimeout(() => {
-                            if (successAlert) {
+                            if (successAlert && successAlert.parentNode) {
                                 successAlert.remove();
                             }
                         }, 5000);
@@ -304,6 +401,7 @@ document.addEventListener("DOMContentLoaded", function(){
 });
 
 
+// ====== DELETE FRIEND FUNCTION ======
 function deleteFriend(button) {
     const friendId = button.getAttribute('data-friend-id');
     const friendName = button.getAttribute('data-friend-name');
@@ -311,7 +409,6 @@ function deleteFriend(button) {
     if (!confirm(`Are you sure you want to remove ${friendName} from your friends list?`)) {
         return;
     }
-    
 
     let csrfToken = '';
     const metaToken = document.querySelector('meta[name="csrf-token"]');
@@ -321,19 +418,13 @@ function deleteFriend(button) {
     
     console.log('Deleting friend via API:', { friendId, friendName });
     
-    const formData = new FormData();
-    formData.append('action', 'delete_friend');
-    formData.append('friend_id', friendId);
-    formData.append('_token', csrfToken);
-    
-    fetch("/api/memories", {
-        method: "POST",
+    fetch(`/api/friends/${friendId}`, {
+        method: "DELETE",
         headers: { 
             "X-CSRF-TOKEN": csrfToken,
             "X-Requested-With": "XMLHttpRequest",
             "Accept": "application/json"
         },
-        body: formData,
         credentials: 'same-origin'
     })
     .then(response => {
@@ -349,15 +440,7 @@ function deleteFriend(button) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("application/json")) {
-            return response.json();
-        } else {
-            return response.text().then(text => {
-                console.error('API returned non-JSON response:', text);
-                throw new Error("Server returned unexpected response format");
-            });
-        }
+        return response.json();
     })
     .then(data => {
         console.log('Delete success:', data);
@@ -388,7 +471,7 @@ function deleteFriend(button) {
                 cardBody.insertBefore(successAlert, cardBody.firstChild);
                 
                 setTimeout(() => {
-                    if (successAlert) {
+                    if (successAlert && successAlert.parentNode) {
                         successAlert.remove();
                     }
                 }, 5000);
@@ -412,7 +495,7 @@ function deleteFriend(button) {
             cardBody.insertBefore(errorAlert, cardBody.firstChild);
             
             setTimeout(() => {
-                if (errorAlert) {
+                if (errorAlert && errorAlert.parentNode) {
                     errorAlert.remove();
                 }
             }, 5000);
@@ -421,11 +504,7 @@ function deleteFriend(button) {
 }
 
 
-function getApiToken() {
-
-    return '';
-}
-
+// ====== UNSHARE MEMORY FUNCTIONS ======
 function unshareMemory(friendId, memoryId, memoryTitle) {
     if (!confirm(`Unshare "${memoryTitle}" from this friend?`)) {
         return;

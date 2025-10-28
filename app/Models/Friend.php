@@ -17,12 +17,12 @@ class Friend extends Model
 
     public function user()
     {
-        return $this->belongsTo(\App\Models\User::class, 'user_id');
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     public function friendUser()
     {
-        return $this->belongsTo(\App\Models\User::class, 'friend_id');
+        return $this->belongsTo(User::class, 'friend_id');
     }
 
     public function getSharedMemoriesAttribute()
