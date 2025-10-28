@@ -144,6 +144,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 labels: ['Positive', 'Neutral', 'Negative'],
                 datasets: [{
                     data: [
+                    //hi this is a comment remove this later
                         {{ $sentimentSummary['positive'] }},
                         {{ $sentimentSummary['neutral'] }},
                         {{ $sentimentSummary['negative'] }}
